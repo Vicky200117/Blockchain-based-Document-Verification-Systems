@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <title>Upload Documents</title>
+</head>
+<body>
+    <div class="container">
+        <h1>Upload Documents</h1>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <input type="file" name="file" multiple>
+            <button type="submit">Upload</button>
+        </form>
+        <h2>Your Documents</h2>
+        <ul id="documentsList"></ul>
+        <form action="/logout" method="GET">
+            <button type="submit">Logout</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            if (response.ok) {
+                alert(result.message);
+                loadDocuments();
+            } else {
+                alert(result.message);
+            }
+        };
+
+        async function loadDocuments() {
+            const response = await fetch('/files');
+            const result = await response.json();
+            if (response.ok) {
+                const documentsList = document.getElementById('documentsList');
+                documentsList.innerHTML = '';
+                result.documents.forEach(doc => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = doc.filename;
+                    listItem.id = `doc-${doc.id}`;
+                    const revokeButton = document.createElement('button');
+                    revokeButton.textContent = 'Revoke';
+                    revokeButton.onclick = () => revokeDocument(doc.id);
+                    listItem.appendChild(revokeButton);
+                    documentsList.appendChild(listItem);
+                });
+            }
+        }
+
+        async function revokeDocument(documentId) {
+            const response = await fetch('/revoke', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id: documentId })
+            });
+            const result = await response.json();
+            if (response.ok) {
+                alert(result.message);
+                document.getElementById(`doc-${documentId}`).remove();
+            } else {
+                alert(result.message);
+            }
+        }
+
+        window.onload = loadDocuments;
+    </script>
+</body>
+</html>

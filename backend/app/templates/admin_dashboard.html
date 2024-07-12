@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Admin Dashboard</h1>
+    <button onclick="logout()">Logout</button>
+    <h2>Users</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="user-table">
+            <!-- User rows will be populated by JavaScript -->
+        </tbody>
+    </table>
+
+    <h2>Documents</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Filename</th>
+                <th>Username</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="document-table">
+            <!-- Document rows will be populated by JavaScript -->
+        </tbody>
+    </table>
+
+    <script>
+        $(document).ready(function() {
+            fetchUsers();
+            fetchDocuments();
+
+            function fetchUsers() {
+                $.ajax({
+                    url: '/admin/users',
+                    type: 'GET',
+                    success: function(response) {
+                        var userTable = $('#user-table');
+                        userTable.empty();
+                        response.users.forEach(function(user) {
+                            userTable.append(`
+                                <tr id="user-${user.id}">
+                                    <td>${user.username}</td>
+                                    <td>${user.email}</td>
+                                    <td>${user.role}</td>
+                                    <td>
+                                        <button onclick="deleteUser(${user.id})">Delete</button>
+                                    </td>
+                                </tr>
+                            `);
+                        });
+                    },
+                    error: function(response) {
+                        alert('Failed to fetch users.');
+                    }
+                });
+            }
+
+            function fetchDocuments() {
+                $.ajax({
+                    url: '/admin/documents',
+                    type: 'GET',
+                    success: function(response) {
+                        var documentTable = $('#document-table');
+                        documentTable.empty();
+                        response.documents.forEach(function(doc) {
+                            documentTable.append(`
+                                <tr id="document-${doc.id}">
+                                    <td>${doc.filename}</td>
+                                    <td>${doc.username}</td>
+                                    <td>
+                                        <button onclick="verifyDocument(${doc.id})">Verify</button>
+                                        <button onclick="deleteDocument(${doc.id})">Delete</button>
+                                    </td>
+                                </tr>
+                            `);
+                        });
+                    },
+                    error: function(response) {
+                        alert('Failed to fetch documents.');
+                    }
+                });
+            }
+
+            window.deleteUser = function(userId) {
+                if (confirm('Are you sure you want to delete this user?')) {
+                    $.ajax({
+                        url: `/admin/users/${userId}`,
+                        type: 'DELETE',
+                        success: function(response) {
+                            alert(response.message);
+                            $(`#user-${userId}`).remove();
+                            fetchDocuments();
+                        },
+                        error: function(response) {
+                            alert(response.responseJSON.message);
+                        }
+                    });
+                }
+            };
+
+            window.verifyDocument = function(documentId) {
+                $.ajax({
+                    url: `/admin/documents/${documentId}/verify`,
+                    type: 'POST',
+                    success: function(response) {
+                        alert(response.message);
+                        fetchDocuments();
+                    },
+                    error: function(response) {
+                        alert(response.responseJSON.message);
+                    }
+                });
+            };
+
+            window.deleteDocument = function(documentId) {
+                if (confirm('Are you sure you want to delete this document?')) {
+                    $.ajax({
+                        url: `/admin/documents/${documentId}/delete`,
+                        type: 'DELETE',
+                        success: function(response) {
+                            alert(response.message);
+                            $(`#document-${documentId}`).remove();
+                        },
+                        error: function(response) {
+                            alert(response.responseJSON.message);
+                        }
+                    });
+                }
+            };
+
+            window.logout = function() {
+                $.ajax({
+                    url: '/logout',
+                    type: 'POST',
+                    success: function(response) {
+                        window.location.href = '/';
+                    },
+                    error: function(response) {
+                        alert('Logout failed.');
+                    }
+                });
+            };
+        });
+    </script>
+</body>
+</html>
